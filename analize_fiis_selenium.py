@@ -1,6 +1,8 @@
 from selenium import webdriver
 import time
 import json
+import pandas as p
+from ExcelFactory import XlsFactory
 
 driver = webdriver.Chrome(
     executable_path=r"./chromedriver.exe"
@@ -12,7 +14,11 @@ items = table.find_elements_by_tag_name('li')
 close_modal = driver.find_element_by_id('popup-x')
 close_modal.click()
 time.sleep(2)
+modal_container_close = driver.find_element_by_class_name('modal__close')
+modal_container_close.click()
+time.sleep(2)
 rows_data = []
+
 for item in items:
     print(str(items.index(item)) + '/' + str(len(items)))
     try:
@@ -20,7 +26,9 @@ for item in items:
         name = item.find_element_by_class_name('name')
         item.click()
         time.sleep(2)
-        rows = item.find_element_by_tag_name('table').find_element_by_tag_name('tbody').find_elements_by_tag_name('tr')
+        table = item.find_element_by_tag_name('table')
+        tbody = table.find_element_by_tag_name('tbody')
+        rows = tbody.find_elements_by_tag_name('tr')
         cols_data = []
         for row in rows:
             cols = row.find_elements_by_tag_name('td')
@@ -38,11 +46,13 @@ for item in items:
             'name': name.text,
             'data': cols_data
         }
-        
         rows_data.append(value)
-    except e:
+    except Exception as e:
         print(str(items.index(item)) + '/' + str(len(items)) + ' - Exception')
 
 # data.sort(key=lambda x: x.get('porcentagem'))
-print(json.dumps(rows_data, indent=4, sort_keys=True))
+XlsFactory.create_csv(f'{str(time.time())}-fiis.xls', 'fiis', rows_data)
+df = p.DataFrame(rows_data)
+df.to_excel('pandas_xls.xlsx')
+# print(json.dumps(rows_data, indent=2, sort_keys=True))
 driver.close()
